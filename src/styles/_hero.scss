@@ -1,0 +1,298 @@
+@use 'variables' as *;
+
+// ─── Hero Section ──────────────────────────────────────────────────────────────
+
+.hero-section {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 8rem 0 clamp(3rem, 5vw, 5rem);
+  position: relative;
+}
+
+// Background glow (lime radial on the right)
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 60% at 72% 38%, rgba(220, 255, 34, 0.08), transparent 70%),
+    radial-gradient(40% 50% at 20% 80%, rgba(220, 255, 34, 0.025), transparent 60%);
+  pointer-events: none;
+}
+
+// Subtle grid overlay
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 80px 80px;
+  opacity: 0.28;
+  -webkit-mask-image: radial-gradient(80% 80%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(80% 80%, #000 30%, transparent 100%);
+  pointer-events: none;
+}
+
+// Content wrapper
+.hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex: 1;
+}
+
+// Eyebrow label — tight above heading like reference
+.hero-eyebrow {
+  display: block;
+  font-family: $font-heading;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: $color-accent;
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.2s forwards;
+}
+
+// Big headline
+.hero-hl {
+  font-family: $font-heading;
+  font-size: clamp(5.2rem, 12vw, 13rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 0.88;
+  text-transform: uppercase;
+  margin: 0 0 clamp(2.5rem, 5vw, 4.5rem);
+  overflow: visible;
+}
+
+.hero-hl .line {
+  display: block;
+}
+
+.hero-hl .line span {
+  display: block;
+  white-space: nowrap;
+  transform: translateY(110%);
+  opacity: 0;
+  animation: slideUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hero-hl .line:first-child span  { animation-delay: 0.3s; }
+.hero-hl .line:nth-child(2) span { animation-delay: 0.45s; }
+.hero-hl .line:nth-child(3) span { animation-delay: 0.6s; }
+
+// "Vision." italic outline treatment
+.hero-hl em {
+  color: transparent;
+  -webkit-text-stroke: 1.5px $color-text;
+  font-style: italic;
+}
+
+// ─── Bottom Row (desc · stats · scroll) ────────────────────────────────────────
+
+.hero-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  flex-wrap: nowrap;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.9s forwards;
+}
+
+.hero-desc {
+  max-width: 22rem;
+  color: $color-text-muted;
+  font-size: clamp(0.82rem, 0.95vw, 0.95rem);
+  line-height: 1.72;
+}
+
+// Stats row
+.hero-stats {
+  display: flex;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.hero-stat {
+  flex-shrink: 0;
+}
+
+// Stat number value
+.hsn {
+  font-family: $font-heading;
+  font-size: clamp(1.45rem, 2.2vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1;
+  color: $color-text;
+}
+
+// Stat label
+.hsl {
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: $color-text-muted;
+  margin-top: 0.45rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+// Scroll cue
+.hero-scroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: $font-heading;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: $color-text-muted;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+
+  &:hover {
+    color: $color-accent;
+  }
+}
+
+// Animated gradient line
+.scroll-line {
+  background: linear-gradient(to bottom, transparent, $color-accent);
+  width: 1px;
+  height: 3.75rem;
+  animation: scrollLine 2s ease-in-out infinite;
+}
+
+// ─── Keyframes ─────────────────────────────────────────────────────────────────
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scrollLine {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+// ─── Responsive ────────────────────────────────────────────────────────────────
+
+// Tablet landscape
+@media (max-width: 1024px) {
+  .hero-hl {
+    font-size: clamp(4.5rem, 11vw, 10rem);
+  }
+}
+
+// Tablet portrait
+@media (max-width: 860px) {
+  .hero-section {
+    padding-top: 6.5rem;
+  }
+
+  .hero-bottom {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 2rem;
+  }
+
+  .hero-stats {
+    flex-wrap: wrap;
+    gap: 1.5rem 2rem;
+  }
+
+  .hero-scroll {
+    writing-mode: horizontal-tb;
+    transform: none;
+    flex-direction: row;
+  }
+
+  .scroll-line {
+    height: 1px;
+    width: 3.75rem;
+    background: linear-gradient(to right, transparent, $color-accent);
+  }
+}
+
+// Mobile
+@media (max-width: 560px) {
+  .hero-section {
+    padding-top: 5.5rem;
+    padding-bottom: 2.5rem;
+  }
+
+  .hero-hl {
+    font-size: clamp(3rem, 15vw, 5rem);
+  }
+
+  // Allow all lines to wrap on very small screens
+  .hero-hl .line span {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .hero-eyebrow {
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
+  }
+
+  .hero-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+
+  .hero-desc {
+    max-width: 100%;
+    font-size: 0.85rem;
+  }
+
+  // 2x2 grid so stats don't overflow
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.2rem 2rem;
+    width: 100%;
+  }
+
+  .hsl {
+    white-space: normal;
+    font-size: 0.55rem;
+  }
+
+  .hero-scroll {
+    display: none;
+  }
+}
