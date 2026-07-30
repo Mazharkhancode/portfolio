@@ -25,11 +25,14 @@ function AboutPage() {
   const constellationRef = useRef(null)
   const sysmapRef = useRef(null)
 
+  // Detect mobile (<=768px) for animation simplification
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+
   // System map interaction states
   const [activeNode, setActiveNode] = useState(null)
   const [lineCoords, setLineCoords] = useState(null)
   const [nodeStory, setNodeStory] = useState({
-    title: 'Hover a node',
+    title: isMobile ? 'Tap a node' : 'Hover a node',
     desc: 'Each node is a discipline. Together they behave as one system.',
   })
 
@@ -134,11 +137,20 @@ function AboutPage() {
     }
   }
 
+  // Touch support: toggle node on tap (mobile)
+  const handleNodeClick = (node, e) => {
+    if (activeNode === node.id) {
+      handleMouseLeaveNode()
+    } else {
+      handleMouseEnterNode(node, e)
+    }
+  }
+
   const handleMouseLeaveNode = () => {
     setActiveNode(null)
     setLineCoords(null)
     setNodeStory({
-      title: 'Hover a node',
+      title: window.innerWidth <= 768 ? 'Tap a node' : 'Hover a node',
       desc: 'Each node is a discipline. Together they behave as one system.',
     })
   }
@@ -320,88 +332,137 @@ function AboutPage() {
 
   // GSAP animations with scoping/React 18 StrictMode compatibility
   useEffect(() => {
+    const mobile = window.innerWidth <= 768
+
     let ctx = gsap.context(() => {
-      // 1. City pinned timeline switching (La Chaux-de-Fonds ➔ Paris ➔ New York)
+      // 1. City pinned timeline switching
       const cities = document.querySelectorAll('.city')
       const counterEl = document.querySelector('.origin-counter b')
 
-      // Set initial values (y: 60 for fade-ins)
-      gsap.set(cities, { opacity: 0, autoAlpha: 0 })
-      gsap.set(cities[0], { opacity: 1, autoAlpha: 1 })
-      
-      const cityContents = document.querySelectorAll('.city .city-content')
-      gsap.set(cityContents, { y: 60 })
-      gsap.set(cityContents[0], { y: 0 })
+      if (!mobile) {
+        // Desktop: full pinned scroll animation
+        gsap.set(cities, { opacity: 0, autoAlpha: 0 })
+        gsap.set(cities[0], { opacity: 1, autoAlpha: 1 })
 
-      const cityTl = gsap.timeline({
-        scrollTrigger: {
-          trigger: '#origin-pin',
-          start: 'top top',
-          end: '+=120%',
-          pin: '#origin-stage',
-          scrub: true,
-        }
-      })
+        const cityContents = document.querySelectorAll('.city .city-content')
+        gsap.set(cityContents, { y: 60 })
+        gsap.set(cityContents[0], { y: 0 })
 
-      cityTl
-        // City 0 (Switzerland) fades out & shifts up; City 1 (Paris) fades in & shifts up to center
-        .to(cities[0], { opacity: 0, autoAlpha: 0, duration: 0.5 }, 0.3)
-        .to(cityContents[0], { y: -60, duration: 0.5 }, 0.3)
-        .to(cities[1], { opacity: 1, autoAlpha: 1, duration: 0.5 }, 0.5)
-        .to(cityContents[1], { y: 0, duration: 0.5 }, 0.5)
-        .call(() => { if (counterEl) counterEl.textContent = '02' }, null, 0.5)
+        const cityTl = gsap.timeline({
+          scrollTrigger: {
+            trigger: '#origin-pin',
+            start: 'top top',
+            end: '+=120%',
+            pin: '#origin-stage',
+            scrub: true,
+          }
+        })
 
-        // City 1 (Paris) fades out & shifts up; City 2 (New York) fades in & shifts up to center
-        .to(cities[1], { opacity: 0, autoAlpha: 0, duration: 0.5 }, 1.3)
-        .to(cityContents[1], { y: -60, duration: 0.5 }, 1.3)
-        .to(cities[2], { opacity: 1, autoAlpha: 1, duration: 0.5 }, 1.5)
-        .to(cityContents[2], { y: 0, duration: 0.5 }, 1.5)
-        .call(() => { if (counterEl) counterEl.textContent = '03' }, null, 1.5)
+        cityTl
+          .to(cities[0], { opacity: 0, autoAlpha: 0, duration: 0.5 }, 0.3)
+          .to(cityContents[0], { y: -60, duration: 0.5 }, 0.3)
+          .to(cities[1], { opacity: 1, autoAlpha: 1, duration: 0.5 }, 0.5)
+          .to(cityContents[1], { y: 0, duration: 0.5 }, 0.5)
+          .call(() => { if (counterEl) counterEl.textContent = '02' }, null, 0.5)
+          .to(cities[1], { opacity: 0, autoAlpha: 0, duration: 0.5 }, 1.3)
+          .to(cityContents[1], { y: -60, duration: 0.5 }, 1.3)
+          .to(cities[2], { opacity: 1, autoAlpha: 1, duration: 0.5 }, 1.5)
+          .to(cityContents[2], { y: 0, duration: 0.5 }, 1.5)
+          .call(() => { if (counterEl) counterEl.textContent = '03' }, null, 1.5)
+          .call(() => { if (counterEl) counterEl.textContent = '01' }, null, 0.2)
+          .call(() => { if (counterEl) counterEl.textContent = '02' }, null, 1.2)
+      } else {
+        // Mobile: simple reveal animation for each city card
+        cities.forEach((city) => {
+          gsap.from(city, {
+            opacity: 0,
+            y: 40,
+            duration: 0.8,
+            ease: 'power2.out',
+            scrollTrigger: {
+              trigger: city,
+              start: 'top 85%',
+              toggleActions: 'play none none reverse',
+            }
+          })
+        })
+      }
 
-        // Reverse labels for scroll direction reversals
-        .call(() => { if (counterEl) counterEl.textContent = '01' }, null, 0.2)
-        .call(() => { if (counterEl) counterEl.textContent = '02' }, null, 1.2)
-
-      // 2. Opposites Split Pinned shifts (Staggered merge from sides to center)
+      // 2. Opposites Split — Desktop: pinned scrub; Mobile: scroll-triggered reveal
       const splitRows = document.querySelectorAll('.vs-row')
-      
-      // Set initial state
+      const xDist = mobile ? 60 : 180
+
       splitRows.forEach((row) => {
         const leftEl = row.querySelector('.l')
         const rightEl = row.querySelector('.r')
         const crossEl = row.querySelector('.x')
         if (leftEl && rightEl && crossEl) {
-          gsap.set(leftEl, { x: -180, opacity: 0 })
-          gsap.set(rightEl, { x: 180, opacity: 0 })
+          gsap.set(leftEl, { x: -xDist, opacity: 0 })
+          gsap.set(rightEl, { x: xDist, opacity: 0 })
           gsap.set(crossEl, { scale: 0, opacity: 0 })
         }
       })
 
-      const splitTl = gsap.timeline({
-        scrollTrigger: {
-          trigger: '#split-pin',
-          start: 'top top',
-          end: '+=140%',
-          pin: true,
-          scrub: 1,
-        }
-      })
+      if (!mobile) {
+        const splitTl = gsap.timeline({
+          scrollTrigger: {
+            trigger: '#split-pin',
+            start: 'top top',
+            end: '+=140%',
+            pin: true,
+            scrub: 1,
+          }
+        })
 
-      splitRows.forEach((row, idx) => {
-        const leftEl = row.querySelector('.l')
-        const rightEl = row.querySelector('.r')
-        const crossEl = row.querySelector('.x')
-        const timeOffset = idx * 0.45
+        splitRows.forEach((row, idx) => {
+          const leftEl = row.querySelector('.l')
+          const rightEl = row.querySelector('.r')
+          const crossEl = row.querySelector('.x')
+          const timeOffset = idx * 0.45
 
-        if (leftEl && rightEl && crossEl) {
-          splitTl
-            .to(leftEl, { x: 0, opacity: 1, duration: 1, ease: 'power2.out' }, timeOffset)
-            .to(rightEl, { x: 0, opacity: 1, duration: 1, ease: 'power2.out' }, timeOffset)
-            .to(crossEl, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.5)' }, timeOffset + 0.3)
-        }
-      })
+          if (leftEl && rightEl && crossEl) {
+            splitTl
+              .to(leftEl, { x: 0, opacity: 1, duration: 1, ease: 'power2.out' }, timeOffset)
+              .to(rightEl, { x: 0, opacity: 1, duration: 1, ease: 'power2.out' }, timeOffset)
+              .to(crossEl, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.5)' }, timeOffset + 0.3)
+          }
+        })
+      } else {
+        // Mobile: individual scroll-triggered reveals per row
+        splitRows.forEach((row) => {
+          const leftEl = row.querySelector('.l')
+          const rightEl = row.querySelector('.r')
+          const crossEl = row.querySelector('.x')
 
-      // 2.5. HUMAN × AI Pinned Scroll Scramble and Slide Merge
+          if (leftEl && rightEl && crossEl) {
+            gsap.to([leftEl, rightEl], {
+              x: 0,
+              opacity: 1,
+              duration: 0.7,
+              ease: 'power2.out',
+              scrollTrigger: {
+                trigger: row,
+                start: 'top 88%',
+                toggleActions: 'play none none reverse',
+              }
+            })
+            gsap.to(crossEl, {
+              scale: 1,
+              opacity: 1,
+              duration: 0.5,
+              delay: 0.15,
+              ease: 'back.out(1.5)',
+              scrollTrigger: {
+                trigger: row,
+                start: 'top 88%',
+                toggleActions: 'play none none reverse',
+              }
+            })
+          }
+        })
+      }
+
+      // 2.5. HUMAN × AI — works on both, but no pin on mobile
       const mergeH = document.getElementById('mergeH')
       if (mergeH) {
         const humanEl = mergeH.querySelector('.human-text')
@@ -410,8 +471,8 @@ function AboutPage() {
         const smallEl = document.querySelector('#merge .small')
 
         if (humanEl && aiEl) {
-          const originalHuman = "HUMAN"
-          const originalAI = "AI"
+          const originalHuman = "HUMAN DEV"
+          const originalAI = "AI WORKFLOWS"
           const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%"
           let hasDecoded = false
 
@@ -450,27 +511,17 @@ function AboutPage() {
             }, 35)
           }
 
-          // Initial positions (Blurred, wide letter tracking, scaled down)
           gsap.set(humanEl, { filter: 'blur(15px)', letterSpacing: '0.25em', opacity: 0, scale: 0.9 })
           gsap.set(aiEl, { filter: 'blur(15px)', letterSpacing: '0.25em', opacity: 0, scale: 0.9 })
           gsap.set(crossEl, { scale: 0, opacity: 0, rotate: -180 })
           gsap.set(smallEl, { opacity: 0, y: 15 })
 
-          const mergeTl = gsap.timeline({
-            scrollTrigger: {
-              trigger: '#merge',
-              start: 'top top',
-              end: '+=75%',
-              pin: true,
-              scrub: 1,
-              onEnter: () => {
-                startDecode()
-              },
-              onLeaveBack: () => {
-                hasDecoded = false
-              }
-            }
-          })
+          const mergeConfig = mobile
+            ? { trigger: '#merge', start: 'top 80%', toggleActions: 'play none none reverse' }
+            : { trigger: '#merge', start: 'top top', end: '+=75%', pin: true, scrub: 1,
+                onEnter: () => startDecode(), onLeaveBack: () => { hasDecoded = false } }
+
+          const mergeTl = gsap.timeline({ scrollTrigger: { ...mergeConfig, onEnter: () => startDecode() } })
 
           mergeTl
             .to(humanEl, { filter: 'blur(0px)', letterSpacing: '0em', opacity: 1, scale: 1, duration: 1.2, ease: 'power3.out' }, 0)
@@ -480,109 +531,148 @@ function AboutPage() {
         }
       }
 
-      // 3. Taste Pinned word storm & flash highlight (GSAP Timeline)
+      // 3. Taste section — Desktop: pinned scrub; Mobile: simple reveal
       const noiseWords = document.querySelectorAll('.noise-word')
       const tasteFlash = document.getElementById('taste-flash')
       const tasteStatement = document.querySelector('#taste-core .statement')
       const tasteWord = document.getElementById('tasteWord')
       const tasteAfter = document.querySelector('#taste-core .after')
 
-      // Set initial values
       gsap.set(tasteFlash, { opacity: 0 })
       gsap.set(tasteWord, { opacity: 0, scale: 0.85 })
       gsap.set(tasteAfter, { opacity: 0 })
       gsap.set(tasteStatement, { opacity: 1 })
       gsap.set(noiseWords, { opacity: 0, scale: 0.7, filter: 'blur(0px)' })
 
-      const tasteTl = gsap.timeline({
-        scrollTrigger: {
-          trigger: '#taste-pin',
-          start: 'top top',
-          end: '+=140%',
-          pin: true,
-          scrub: 1,
-        }
-      })
+      if (!mobile) {
+        const tasteTl = gsap.timeline({
+          scrollTrigger: {
+            trigger: '#taste-pin',
+            start: 'top top',
+            end: '+=140%',
+            pin: true,
+            scrub: 1,
+          }
+        })
 
-      // Step 1: Words appear, scale up, blur out, and disappear
-      noiseWords.forEach((word, idx) => {
-        // Random drift direction for organic feel
-        const xOffset = (idx % 2 === 0 ? 40 : -40)
-        const yOffset = (idx % 3 === 0 ? -50 : 50)
+        noiseWords.forEach((word, idx) => {
+          const xOffset = (idx % 2 === 0 ? 40 : -40)
+          const yOffset = (idx % 3 === 0 ? -50 : 50)
+
+          tasteTl
+            .to(word, { x: xOffset * 0.5, y: yOffset * 0.5, opacity: 0.7, scale: 1.3, duration: 0.6, ease: 'power1.out' }, 0)
+            .to(word, { x: xOffset, y: yOffset, opacity: 0, scale: 2.4, filter: 'blur(12px)', duration: 0.7, ease: 'power1.in' }, 0.6)
+        })
 
         tasteTl
-          // Phase A: Scale up and fade in
-          .to(word, {
-            x: xOffset * 0.5,
-            y: yOffset * 0.5,
-            opacity: 0.7,
-            scale: 1.3,
-            duration: 0.6,
-            ease: 'power1.out'
-          }, 0)
-          // Phase B: Grow larger, blur, and fade out
-          .to(word, {
-            x: xOffset,
-            y: yOffset,
-            opacity: 0,
-            scale: 2.4,
-            filter: 'blur(12px)',
-            duration: 0.7,
-            ease: 'power1.in'
-          }, 0.6)
-      })
+          .to(tasteFlash, { opacity: 1, duration: 0.6, ease: 'power2.in' }, 1.2)
+          .set(tasteStatement, { opacity: 0 }, 1.8)
+          .set(noiseWords, { opacity: 0 }, 1.8)
+          .set(tasteWord, { opacity: 1 }, 1.8)
+          .set(tasteAfter, { opacity: 1 }, 1.8)
+          .to(tasteFlash, { opacity: 0, duration: 0.6, ease: 'power2.out' }, 1.8)
+          .to(tasteWord, { scale: 1.05, duration: 1.5, ease: 'power1.out' }, 1.8)
+      } else {
+        // Mobile: show noise words briefly then reveal taste word
+        gsap.to(noiseWords, {
+          opacity: 0.55,
+          scale: 1,
+          duration: 0.6,
+          stagger: 0.08,
+          ease: 'power1.out',
+          scrollTrigger: {
+            trigger: '#taste-pin',
+            start: 'top 80%',
+            toggleActions: 'play none none reverse',
+          }
+        })
+        gsap.to(tasteWord, {
+          opacity: 1,
+          scale: 1,
+          duration: 0.8,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: '#taste-pin',
+            start: 'top 60%',
+            toggleActions: 'play none none reverse',
+          }
+        })
+        gsap.to(tasteAfter, {
+          opacity: 1,
+          duration: 0.6,
+          delay: 0.2,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: '#taste-pin',
+            start: 'top 60%',
+            toggleActions: 'play none none reverse',
+          }
+        })
+        gsap.to(tasteStatement, {
+          opacity: 0,
+          duration: 0.4,
+          scrollTrigger: {
+            trigger: '#taste-pin',
+            start: 'top 60%',
+            toggleActions: 'play none none reverse',
+          }
+        })
+      }
 
-      // Step 2: Bright solid yellow flash coverage
-      tasteTl
-        .to(tasteFlash, { opacity: 1, duration: 0.6, ease: 'power2.in' }, 1.2)
-        
-        // Step 3: Swap contents at the peak of the flash (t=1.8s)
-        .set(tasteStatement, { opacity: 0 }, 1.8)
-        .set(noiseWords, { opacity: 0 }, 1.8)
-        .set(tasteWord, { opacity: 1 }, 1.8)
-        .set(tasteAfter, { opacity: 1 }, 1.8)
-        
-        // Step 4: Flash fades out, revealing the TASTE word
-        .to(tasteFlash, { opacity: 0, duration: 0.6, ease: 'power2.out' }, 1.8)
-        
-        // Step 5: Scale the TASTE word slightly
-        .to(tasteWord, { scale: 1.05, duration: 1.5, ease: 'power1.out' }, 1.8)
-
-      // 4. Creed scrolling character-level GSAP animations (Crisp Vertical Stagger Reveal)
+      // 4. Creed animations — Desktop: pinned scrub; Mobile: scroll-triggered reveal
       const creeds = document.querySelectorAll('.creed')
       creeds.forEach((creed) => {
         const chars = creed.querySelectorAll('.fx-target .char')
         const label = creed.querySelector('.n')
         if (chars.length === 0) return
 
-        // Set initial states (Hidden, shifted down vertically, no 3D transforms or blurs)
-        gsap.set(chars, { 
-          opacity: 0, 
-          y: 60,
-        })
+        gsap.set(chars, { opacity: 0, y: 60 })
         if (label) gsap.set(label, { opacity: 0, y: 15 })
 
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: creed,
-            start: 'top top',
-            end: '+=100%',
-            pin: true,
-            scrub: 1,
+        if (!mobile) {
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: creed,
+              start: 'top top',
+              end: '+=100%',
+              pin: true,
+              scrub: 1,
+            }
+          })
+
+          if (label) {
+            tl.to(label, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0)
           }
-        })
 
-        if (label) {
-          tl.to(label, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0)
+          tl.to(chars, {
+            opacity: 1,
+            y: 0,
+            stagger: 0.02,
+            duration: 1.2,
+            ease: 'power2.out'
+          }, 0.1)
+        } else {
+          // Mobile: trigger animation when entering viewport
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: creed,
+              start: 'top 80%',
+              toggleActions: 'play none none reverse',
+            }
+          })
+
+          if (label) {
+            tl.to(label, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0)
+          }
+
+          tl.to(chars, {
+            opacity: 1,
+            y: 0,
+            stagger: 0.015,
+            duration: 0.8,
+            ease: 'power2.out'
+          }, 0.1)
         }
-
-        tl.to(chars, {
-          opacity: 1,
-          y: 0,
-          stagger: 0.02,
-          duration: 1.2,
-          ease: 'power2.out'
-        }, 0.1)
       })
     }, containerRef)
 
@@ -769,6 +859,7 @@ function AboutPage() {
               className={`node ${activeNode === node.id ? 'active' : ''}`}
               onMouseEnter={(e) => handleMouseEnterNode(node, e)}
               onMouseLeave={handleMouseLeaveNode}
+              onClick={(e) => handleNodeClick(node, e)}
             >
               {node.label}
             </button>

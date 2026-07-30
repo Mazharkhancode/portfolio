@@ -980,4 +980,430 @@
       transform: translateY(0);
     }
   }
+
+  // ═══════════════════════════════════════════════════
+  // ─── MOBILE RESPONSIVE — ≤768px ─────────────────
+  // ═══════════════════════════════════════════════════
+  @media (max-width: 768px) {
+    --pad: 20px;
+
+    // ── Section padding ──
+    section {
+      padding: clamp(60px, 10vh, 100px) var(--pad);
+    }
+
+    // ── Typography ──
+    .display-xl {
+      font-size: clamp(40px, 12vw, 72px);
+      line-height: 0.92;
+      white-space: normal !important;
+    }
+
+    .display-lg {
+      font-size: clamp(28px, 7.5vw, 44px);
+      line-height: 0.95;
+    }
+
+    h1 span.line-1,
+    h1 span.line-2 {
+      white-space: normal !important;
+      display: block !important;
+    }
+
+    // ── Hero arrival ──
+    #arrival {
+      gap: 20px;
+      padding: 80px var(--pad) clamp(60px, 8vh, 100px);
+
+      .boot-line {
+        font-size: 11px;
+        gap: 8px;
+        letter-spacing: 0.2em;
+      }
+
+      .sub {
+        font-size: clamp(13px, 3.8vw, 18px);
+        gap: 10px;
+        letter-spacing: 0.08em;
+        flex-wrap: wrap;
+      }
+
+      .scroll-cue {
+        font-size: 11px;
+        bottom: 20px;
+        letter-spacing: 0.2em;
+
+        &::after {
+          height: 32px;
+        }
+      }
+    }
+
+    // ── Origin section (cities) — show as stacked cards ──
+    #origin-head {
+      padding-bottom: 0;
+
+      h2 {
+        br { display: none; }
+      }
+    }
+
+    #origin-pin {
+      // No pin on mobile, just a normal scroll container
+    }
+
+    #origin-stage {
+      display: flex;
+      flex-direction: column;
+      min-height: auto;
+      padding: 0 var(--pad);
+    }
+
+    .city {
+      position: relative !important;
+      inset: auto !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      padding: 40px 0;
+      border-bottom: 1px solid var(--line);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .place {
+        font-size: clamp(36px, 10vw, 56px);
+        line-height: 0.9;
+      }
+
+      .mood {
+        font-size: 13px;
+        max-width: 100%;
+      }
+    }
+
+    .city-content {
+      transform: none !important;
+    }
+
+    .origin-counter {
+      display: none;
+    }
+
+    // ── Role section system map — tag cloud layout ──
+    #role {
+      .lede {
+        max-width: 100%;
+        font-size: 13px;
+        margin-top: 20px;
+      }
+    }
+
+    .sysmap {
+      margin-top: 36px;
+      height: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-start;
+
+      svg {
+        display: none;
+      }
+    }
+
+    .node {
+      position: static !important;
+      transform: none !important;
+      font-size: 11px;
+      padding: 6px 14px;
+      letter-spacing: 0.12em;
+      
+      // Tap feedback animation
+      transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+
+      &:active {
+        transform: scale(0.96) !important;
+      }
+
+      &.active {
+        background: var(--acid);
+        color: var(--bg);
+        border-color: var(--acid);
+      }
+    }
+
+    .node--core {
+      order: -1;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      font-size: clamp(14px, 4vw, 18px);
+      padding: 12px 24px;
+      margin-bottom: 4px;
+    }
+
+    .node-story {
+      font-size: 13px;
+      min-height: 60px;
+      margin-top: 20px;
+    }
+
+    // ── Split section — no pin, scrollable rows ──
+    #split-pin {
+      .head {
+        padding: clamp(60px, 10vh, 100px) var(--pad) 0;
+      }
+    }
+
+    #split-stage {
+      min-height: auto;
+      padding-bottom: 24px;
+    }
+
+    .vs-row {
+      grid-template-columns: 1fr 40px 1fr;
+      padding: clamp(14px, 2.5vh, 22px) var(--pad);
+      font-size: clamp(18px, 5vw, 28px);
+      gap: 0;
+
+      .x {
+        font-size: 0.65em;
+      }
+
+      .l {
+        text-align: right;
+        padding-right: 4px;
+      }
+
+      .r {
+        padding-left: 4px;
+      }
+    }
+
+    // ── Merge section — no pin on mobile ──
+    #merge {
+      min-height: auto;
+      padding: clamp(60px, 10vh, 100px) var(--pad);
+
+      .small {
+        font-size: clamp(14px, 4vw, 20px);
+      }
+
+      h2 {
+        font-size: clamp(22px, 6.5vw, 36px);
+        flex-direction: column;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+
+        .x {
+          font-size: 0.8em;
+        }
+      }
+    }
+
+    // ── Taste section — simplified, no pin ──
+    #taste-pin {
+      border-top: 1px solid var(--line);
+    }
+
+    #taste-stage {
+      min-height: auto;
+      padding: clamp(60px, 10vh, 100px) var(--pad);
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .noise-word {
+      font-size: clamp(14px, 4vw, 20px) !important;
+      position: static !important;
+      display: inline-block;
+      opacity: 0.45 !important;
+      white-space: nowrap;
+      transform: none !important;
+      filter: none !important;
+    }
+
+    #taste-core {
+      width: 100%;
+      order: 10; // Push to bottom
+
+      .statement {
+        font-size: 13px;
+        max-width: 100%;
+      }
+
+      #tasteWord {
+        font-size: clamp(52px, 18vw, 96px);
+      }
+
+      .after {
+        font-size: 12px;
+        letter-spacing: 0.2em;
+      }
+    }
+
+    // ── Metrics — 2 columns ──
+    .metrics {
+      margin-top: 36px;
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .metric {
+      min-height: 130px;
+      padding: 20px 16px;
+
+      .num {
+        font-size: clamp(36px, 9vw, 56px);
+      }
+
+      .label {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+      }
+    }
+
+    // ── Objects — 2 cols on medium mobile, 1 col on small ──
+    .objects {
+      margin-top: 36px;
+      grid-template-columns: repeat(2, 1fr);
+      perspective: none;
+    }
+
+    .object {
+      min-height: 180px;
+      padding: 20px 16px;
+      // Disable 3D tilt on mobile, show story always
+      transform: none !important;
+
+      .name {
+        font-size: clamp(18px, 4.5vw, 26px);
+        transform: none !important; // No 3D translateZ
+      }
+
+      .story {
+        opacity: 1;
+        transform: none;
+        font-size: 12px;
+      }
+
+      .idx {
+        font-size: 11px;
+      }
+    }
+
+    // ── Manifesto creeds — no pin, simple scroll ──
+    #manifesto {
+      .creed {
+        min-height: auto;
+        padding: clamp(48px, 8vh, 80px) var(--pad);
+
+        h2 {
+          font-size: clamp(24px, 7vw, 40px);
+          line-height: 1.1;
+        }
+
+        .n {
+          font-size: 12px;
+          margin-bottom: 16px;
+        }
+      }
+    }
+
+    // ── Final section ──
+    #final {
+      padding-bottom: 48px;
+    }
+
+    .final-grid {
+      grid-template-columns: 1fr;
+      gap: 28px;
+      margin-top: 32px;
+    }
+
+    .portrait {
+      max-height: 340px;
+      overflow: hidden;
+    }
+
+    .final-copy {
+      h2 {
+        font-size: clamp(28px, 8vw, 44px);
+      }
+
+      .roles {
+        font-size: clamp(14px, 3.5vw, 18px);
+        margin: 20px 0;
+        gap: 4px;
+        letter-spacing: 0.08em;
+      }
+
+      p {
+        max-width: 100%;
+        font-size: 13px;
+      }
+    }
+
+    .cta-row {
+      margin-top: 28px;
+      gap: 10px;
+    }
+
+    .final-cta {
+      flex: 1;
+      text-align: center;
+      font-size: 0.7rem;
+      padding: 12px 16px;
+    }
+
+    // ── Footer ──
+    footer {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 24px var(--pad);
+      font-size: 11px;
+
+      .socials {
+        gap: 16px;
+      }
+    }
+  }
+
+  // ─── Extra small phones (≤420px) ───────────────────
+  @media (max-width: 420px) {
+    .display-xl {
+      font-size: clamp(34px, 11.5vw, 52px);
+    }
+
+    .display-lg {
+      font-size: clamp(24px, 7.5vw, 36px);
+    }
+
+    .vs-row {
+      font-size: clamp(15px, 4.5vw, 22px);
+      grid-template-columns: 1fr 32px 1fr;
+    }
+
+    .objects {
+      grid-template-columns: 1fr;
+    }
+
+    .object {
+      min-height: 140px;
+    }
+
+    .metrics {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    #manifesto .creed h2 {
+      font-size: clamp(20px, 6.5vw, 32px);
+    }
+  }
 }
