@@ -14,7 +14,7 @@ const capabilities = [
   'WordPress',
   'Shopify',
   'WooCommerce',
-  'SCSS',
+  'CSS',
   'Website Optimization',
   'AI & Automation',
 ]
@@ -71,7 +71,7 @@ const projects = [
 ]
 
 const services = [
-  ['01', 'Frontend Development', 'Building responsive, interactive, and modern user interfaces using React, JavaScript, HTML5, CSS3, and SCSS.', 'React · JavaScript · HTML5 · CSS3 · SCSS'],
+  ['01', 'Frontend Development', 'Building responsive, interactive, and modern user interfaces using React, JavaScript, HTML5, CSS3, and CSS.', 'React · JavaScript · HTML5 · CSS3 · CSS'],
   ['02', 'React Development', 'Developing scalable React applications with reusable components, optimized performance, and maintainable architecture.', 'React · Reusable Components · Optimization'],
   ['03', 'WordPress Development', 'Creating custom WordPress websites, Elementor pages, WooCommerce stores, and fully responsive business websites.', 'WordPress · WooCommerce · Elementor'],
   ['04', 'Shopify Development', 'Developing modern Shopify storefronts with optimized user experiences and responsive ecommerce interfaces.', 'Shopify · Liquid · Ecommerce UI'],
@@ -79,7 +79,7 @@ const services = [
   ['06', 'AI Automation & API Integration', 'Building intelligent workflows using AI tools, APIs, and automation platforms to streamline business processes.', 'AI · OpenAI · APIs · Automation · n8n'],
 ]
 
-const clients = ['React', 'WordPress', 'Shopify', 'WooCommerce', 'Elementor', 'JavaScript', 'GSAP', 'SCSS', 'Git', 'Figma', 'n8n', 'OpenAI']
+const clients = ['React', 'WordPress', 'Shopify', 'WooCommerce', 'Elementor', 'JavaScript', 'GSAP', 'CSS', 'Git', 'Figma', 'n8n', 'OpenAI']
 
 function SectionTitle({ eyebrow, words }) {
   return (
