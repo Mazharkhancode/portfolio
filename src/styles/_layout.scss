@@ -23,47 +23,54 @@
 
 .cursor-dot,
 .cursor-ring {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0;
-  mix-blend-mode: difference;
+  display: none;
 }
 
-.cursor-dot {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: $color-accent;
-  transition: opacity 180ms ease, width 180ms ease, height 180ms ease, background-color 180ms ease;
-}
+@media (pointer: fine) {
+  .cursor-dot,
+  .cursor-ring {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    mix-blend-mode: difference;
+  }
 
-.cursor-ring {
-  width: 2.4rem;
-  height: 2.4rem;
-  border: 1px solid rgba(220, 255, 34, 0.78);
-  border-radius: 50%;
-  transition: opacity 180ms ease, width 180ms ease, height 180ms ease, background-color 180ms ease, border-color 180ms ease;
-}
+  .cursor-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: $color-accent;
+    transition: opacity 180ms ease, width 180ms ease, height 180ms ease, background-color 180ms ease;
+  }
 
-body:hover .cursor-dot,
-body:hover .cursor-ring {
-  opacity: 1;
-}
+  .cursor-ring {
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid rgba(220, 255, 34, 0.78);
+    border-radius: 50%;
+    transition: opacity 180ms ease, width 180ms ease, height 180ms ease, background-color 180ms ease, border-color 180ms ease;
+  }
 
-body.is-cursor-active .cursor-dot {
-  width: 0.25rem;
-  height: 0.25rem;
-  background: #fff;
-}
+  body:hover .cursor-dot,
+  body:hover .cursor-ring {
+    opacity: 1;
+  }
 
-body.is-cursor-active .cursor-ring {
-  width: 4.2rem;
-  height: 4.2rem;
-  border-color: $color-accent;
-  background: rgba(220, 255, 34, 0.1);
+  body.is-cursor-active .cursor-dot {
+    width: 0.25rem;
+    height: 0.25rem;
+    background: #fff;
+  }
+  body.is-cursor-active .cursor-ring {
+    width: 4.2rem;
+    height: 4.2rem;
+    border-color: $color-accent;
+    background: rgba(220, 255, 34, 0.1);
+  }
 }
 
 // ─── Sections ──────────────────────────────────────────────────────────────────

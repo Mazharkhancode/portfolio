@@ -317,7 +317,7 @@
     }
   }
 
-  @media (max-width: 760px) {
+  @media (max-width: 768px) {
     .origin-counter {
       display: none;
     }
@@ -325,8 +325,8 @@
       position: relative;
       inset: auto;
       padding: 60px 0;
-      opacity: 1 !important;
-      visibility: visible !important;
+      opacity: 1;
+      visibility: visible;
     }
     #origin-stage {
       display: block;
@@ -426,7 +426,7 @@
     }
   }
 
-  @media (max-width: 760px) {
+  @media (max-width: 768px) {
     .sysmap {
       height: auto;
       display: flex;

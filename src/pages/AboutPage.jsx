@@ -243,7 +243,7 @@ function AboutPage() {
     }
   }, [])
 
-  // Constellation star system canvas
+  // Constellation — cursor-attracting & coalescing particle system
   useEffect(() => {
     const canvas = constellationRef.current
     if (!canvas) return undefined
@@ -253,73 +253,256 @@ function AboutPage() {
     let width = (canvas.width = canvas.offsetWidth)
     let height = (canvas.height = canvas.offsetHeight)
 
-    const particles = []
-    const particleCount = 45
+    // Mouse position tracked relative to canvas
+    const mouse = { x: width / 2, y: height / 2, active: false }
+
+    const PARTICLE_COUNT = 90
+    const ATTRACT_RADIUS = 220    // px — cursor magnetic range
+    const COALESCE_RADIUS = 30    // px — radius where particles merge into one point
+    const LINK_DIST = 100         // max distance to draw inter-particle links
 
     class Particle {
       constructor() {
+        this.reset()
+        // Random start position
         this.x = Math.random() * width
         this.y = Math.random() * height
-        this.vx = (Math.random() - 0.5) * 0.4
-        this.vy = (Math.random() - 0.5) * 0.4
-        this.radius = Math.random() * 1.5 + 0.5
+        // Home anchor coordinates for gentle drifting
+        this.anchorX = this.x
+        this.anchorY = this.y
+        this.driftAngle = Math.random() * Math.PI * 2
+        this.driftSpeed = Math.random() * 0.2 + 0.1
+        this.driftRadius = Math.random() * 40 + 20
+      }
+
+      reset() {
+        this.x = Math.random() * width
+        this.y = Math.random() * height
+        this.anchorX = this.x
+        this.anchorY = this.y
+        this.driftAngle = Math.random() * Math.PI * 2
+        this.driftSpeed = Math.random() * 0.2 + 0.1
+        this.driftRadius = Math.random() * 40 + 20
+        this.baseR = Math.random() * 1.5 + 0.5
+        this.radius = this.baseR
+        this.opacity = Math.random() * 0.4 + 0.2
+        // Make ~25% of the particles yellow like reference site
+        this.isYellow = Math.random() < 0.25
       }
 
       update() {
-        this.x += this.vx
-        this.y += this.vy
+        // Calculate natural drift target coordinate
+        this.driftAngle += 0.005
+        const targetX = this.anchorX + Math.cos(this.driftAngle) * this.driftRadius
+        const targetY = this.anchorY + Math.sin(this.driftAngle) * this.driftRadius
 
-        if (this.x < 0 || this.x > width) this.vx *= -1
-        if (this.y < 0 || this.y > height) this.vy *= -1
+        if (mouse.active) {
+          const dx = mouse.x - this.x
+          const dy = mouse.y - this.y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+
+          if (dist < ATTRACT_RADIUS) {
+            // Magnetic force pulls towards cursor (extremely slow and smooth)
+            const attractRatio = 1 - (dist / ATTRACT_RADIUS)
+            
+            if (dist < COALESCE_RADIUS) {
+              // Merge fully into the cursor (extremely slow speed factor: 0.02)
+              const mergeSpeed = 0.02
+              this.x += (mouse.x - this.x) * mergeSpeed
+              this.y += (mouse.y - this.y) * mergeSpeed
+              
+              // Scale down/fade out as they merge
+              const ratio = dist / COALESCE_RADIUS
+              this.radius = this.baseR * ratio
+              this.opacity = (Math.random() * 0.4 + 0.2) * ratio
+            } else {
+              // Normal attraction: blend drift target and mouse coordinate (extremely slow attraction: 0.01)
+              const pullX = mouse.x
+              const pullY = mouse.y
+              
+              const targetBlendX = targetX + (pullX - targetX) * attractRatio
+              const targetBlendY = targetY + (pullY - targetY) * attractRatio
+              
+              this.x += (targetBlendX - this.x) * 0.01
+              this.y += (targetBlendY - this.y) * 0.01
+              this.radius = this.baseR + attractRatio * 1.2
+              this.opacity = (Math.random() * 0.4 + 0.2) + attractRatio * 0.4
+            }
+          } else {
+            // Outside attraction zone: drift back gently
+            this.x += (targetX - this.x) * 0.02
+            this.y += (targetY - this.y) * 0.02
+            this.radius = this.baseR
+            this.opacity = (Math.random() * 0.4 + 0.2)
+          }
+        } else {
+          // No mouse active: drift naturally
+          this.x += (targetX - this.x) * 0.02
+          this.y += (targetY - this.y) * 0.02
+          this.radius = this.baseR
+          this.opacity = (Math.random() * 0.4 + 0.2)
+        }
       }
 
       draw() {
         ctx.beginPath()
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
-        ctx.fillStyle = 'rgba(242, 242, 237, 0.45)'
+        
+        if (this.isYellow) {
+          ctx.fillStyle = `rgba(232, 255, 71, ${this.opacity})` // Acid yellow
+        } else {
+          ctx.fillStyle = `rgba(242, 242, 237, ${this.opacity})` // White
+        }
+        
         ctx.fill()
       }
     }
 
-    for (let i = 0; i < particleCount; i++) {
+    const particles = []
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
       particles.push(new Particle())
     }
 
     const drawLinks = () => {
+      // Particle ↔ Particle lines
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x
           const dy = particles[i].y - particles[j].y
           const dist = Math.sqrt(dx * dx + dy * dy)
 
-          if (dist < 100) {
-            ctx.beginPath()
-            ctx.moveTo(particles[i].x, particles[i].y)
-            ctx.lineTo(particles[j].x, particles[j].y)
-            ctx.strokeStyle = `rgba(242, 242, 237, ${0.08 * (1 - dist / 100)})`
-            ctx.lineWidth = 0.5
-            ctx.stroke()
+          if (dist < LINK_DIST) {
+            let linkAlpha = 0.08 * (1 - dist / LINK_DIST)
+            
+            if (mouse.active) {
+              const distToMouse1 = Math.sqrt((particles[i].x - mouse.x) ** 2 + (particles[i].y - mouse.y) ** 2)
+              if (distToMouse1 < COALESCE_RADIUS) {
+                linkAlpha *= (distToMouse1 / COALESCE_RADIUS)
+              }
+            }
+            
+            if (linkAlpha > 0.005) {
+              ctx.beginPath()
+              ctx.moveTo(particles[i].x, particles[i].y)
+              ctx.lineTo(particles[j].x, particles[j].y)
+              // If either particle is yellow, draw a yellowish trace link
+              if (particles[i].isYellow || particles[j].isYellow) {
+                ctx.strokeStyle = `rgba(232, 255, 71, ${linkAlpha})`
+              } else {
+                ctx.strokeStyle = `rgba(242, 242, 237, ${linkAlpha})`
+              }
+              ctx.lineWidth = 0.4
+              ctx.stroke()
+            }
           }
         }
       }
+
+      // Draw subtle connection lines from attracted particles directly to the cursor
+      if (mouse.active) {
+        particles.forEach((p) => {
+          const dx = p.x - mouse.x
+          const dy = p.y - mouse.y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+
+          if (dist < ATTRACT_RADIUS && dist > COALESCE_RADIUS) {
+            const attractRatio = 1 - (dist / ATTRACT_RADIUS)
+            const alpha = attractRatio * 0.12
+            
+            ctx.beginPath()
+            ctx.moveTo(p.x, p.y)
+            ctx.lineTo(mouse.x, mouse.y)
+            
+            if (p.isYellow) {
+              ctx.strokeStyle = `rgba(232, 255, 71, ${alpha})`
+            } else {
+              ctx.strokeStyle = `rgba(242, 242, 237, ${alpha})`
+            }
+            
+            ctx.lineWidth = 0.4
+            ctx.stroke()
+          }
+        })
+      }
+    }
+
+    // Draw the main cursor coalesced point
+    const drawMergedCursor = () => {
+      if (!mouse.active) return
+
+      let mergeCount = 0
+      particles.forEach((p) => {
+        const dist = Math.hypot(p.x - mouse.x, p.y - mouse.y)
+        if (dist < COALESCE_RADIUS + 10) {
+          mergeCount++
+        }
+      })
+
+      const baseCursorRadius = 1.5
+      const dynamicRadius = baseCursorRadius + Math.min(mergeCount * 0.08, 3.5)
+
+      // Outer glow aura
+      const grad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, dynamicRadius * 5)
+      grad.addColorStop(0, 'rgba(232, 255, 71, 0.15)') // Glow is acid yellow like reference
+      grad.addColorStop(1, 'rgba(232, 255, 71, 0)')
+      ctx.beginPath()
+      ctx.arc(mouse.x, mouse.y, dynamicRadius * 5, 0, Math.PI * 2)
+      ctx.fillStyle = grad
+      ctx.fill()
+
+      // Core point
+      ctx.beginPath()
+      ctx.arc(mouse.x, mouse.y, dynamicRadius, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(232, 255, 71, 0.95)' // Acid yellow center
+      ctx.fill()
     }
 
     const animate = () => {
       ctx.clearRect(0, 0, width, height)
+      
       particles.forEach((p) => {
         p.update()
         p.draw()
       })
+      
       drawLinks()
+      drawMergedCursor()
       animationFrameId = requestAnimationFrame(animate)
     }
 
     animate()
 
+    // Mouse tracking on the arrival section (not whole page)
+    const section = canvas.parentElement
+    const handleMouseMove = (e) => {
+      const rect = canvas.getBoundingClientRect()
+      mouse.x = e.clientX - rect.left
+      mouse.y = e.clientY - rect.top
+      mouse.active = true
+    }
+    const handleMouseLeave = () => {
+      mouse.active = false
+    }
+
+    // Attach to the arrival section so it only triggers in hero
+    if (section) {
+      section.addEventListener('mousemove', handleMouseMove, { passive: true })
+      section.addEventListener('mouseleave', handleMouseLeave)
+    }
+
     const handleResize = () => {
       if (!canvas) return
       width = canvas.width = canvas.offsetWidth
       height = canvas.height = canvas.offsetHeight
+      
+      // Update particles anchor positions relative to new canvas size
+      particles.forEach(p => {
+        p.anchorX = Math.random() * width
+        p.anchorY = Math.random() * height
+      })
+      
+      mouse.x = width / 2
+      mouse.y = height / 2
     }
 
     window.addEventListener('resize', handleResize)
@@ -327,70 +510,57 @@ function AboutPage() {
     return () => {
       cancelAnimationFrame(animationFrameId)
       window.removeEventListener('resize', handleResize)
+      if (section) {
+        section.removeEventListener('mousemove', handleMouseMove)
+        section.removeEventListener('mouseleave', handleMouseLeave)
+      }
     }
   }, [])
 
   // GSAP animations with scoping/React 18 StrictMode compatibility
   useEffect(() => {
-    const mobile = window.innerWidth <= 768
+    let mm = gsap.matchMedia(containerRef)
 
-    let ctx = gsap.context(() => {
-      // 1. City pinned timeline switching
+    // 1. Desktop Animations (min-width: 769px)
+    mm.add("(min-width: 769px)", () => {
       const cities = document.querySelectorAll('.city')
       const counterEl = document.querySelector('.origin-counter b')
 
-      if (!mobile) {
-        // Desktop: full pinned scroll animation
-        gsap.set(cities, { opacity: 0, autoAlpha: 0 })
-        gsap.set(cities[0], { opacity: 1, autoAlpha: 1 })
+      // Desktop: full pinned scroll animation
+      gsap.set(cities, { opacity: 0, autoAlpha: 0 })
+      gsap.set(cities[0], { opacity: 1, autoAlpha: 1 })
 
-        const cityContents = document.querySelectorAll('.city .city-content')
-        gsap.set(cityContents, { y: 60 })
-        gsap.set(cityContents[0], { y: 0 })
+      const cityContents = document.querySelectorAll('.city .city-content')
+      gsap.set(cityContents, { y: 60 })
+      gsap.set(cityContents[0], { y: 0 })
 
-        const cityTl = gsap.timeline({
-          scrollTrigger: {
-            trigger: '#origin-pin',
-            start: 'top top',
-            end: '+=120%',
-            pin: '#origin-stage',
-            scrub: true,
-          }
-        })
+      const cityTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: '#origin-pin',
+          start: 'top top',
+          end: '+=120%',
+          pin: '#origin-stage',
+          scrub: true,
+        }
+      })
 
-        cityTl
-          .to(cities[0], { opacity: 0, autoAlpha: 0, duration: 0.5 }, 0.3)
-          .to(cityContents[0], { y: -60, duration: 0.5 }, 0.3)
-          .to(cities[1], { opacity: 1, autoAlpha: 1, duration: 0.5 }, 0.5)
-          .to(cityContents[1], { y: 0, duration: 0.5 }, 0.5)
-          .call(() => { if (counterEl) counterEl.textContent = '02' }, null, 0.5)
-          .to(cities[1], { opacity: 0, autoAlpha: 0, duration: 0.5 }, 1.3)
-          .to(cityContents[1], { y: -60, duration: 0.5 }, 1.3)
-          .to(cities[2], { opacity: 1, autoAlpha: 1, duration: 0.5 }, 1.5)
-          .to(cityContents[2], { y: 0, duration: 0.5 }, 1.5)
-          .call(() => { if (counterEl) counterEl.textContent = '03' }, null, 1.5)
-          .call(() => { if (counterEl) counterEl.textContent = '01' }, null, 0.2)
-          .call(() => { if (counterEl) counterEl.textContent = '02' }, null, 1.2)
-      } else {
-        // Mobile: simple reveal animation for each city card
-        cities.forEach((city) => {
-          gsap.from(city, {
-            opacity: 0,
-            y: 40,
-            duration: 0.8,
-            ease: 'power2.out',
-            scrollTrigger: {
-              trigger: city,
-              start: 'top 85%',
-              toggleActions: 'play none none reverse',
-            }
-          })
-        })
-      }
+      cityTl
+        .to(cities[0], { opacity: 0, autoAlpha: 0, duration: 0.5 }, 0.3)
+        .to(cityContents[0], { y: -60, duration: 0.5 }, 0.3)
+        .to(cities[1], { opacity: 1, autoAlpha: 1, duration: 0.5 }, 0.5)
+        .to(cityContents[1], { y: 0, duration: 0.5 }, 0.5)
+        .call(() => { if (counterEl) counterEl.textContent = '02' }, null, 0.5)
+        .to(cities[1], { opacity: 0, autoAlpha: 0, duration: 0.5 }, 1.3)
+        .to(cityContents[1], { y: -60, duration: 0.5 }, 1.3)
+        .to(cities[2], { opacity: 1, autoAlpha: 1, duration: 0.5 }, 1.5)
+        .to(cityContents[2], { y: 0, duration: 0.5 }, 1.5)
+        .call(() => { if (counterEl) counterEl.textContent = '03' }, null, 1.5)
+        .call(() => { if (counterEl) counterEl.textContent = '01' }, null, 0.2)
+        .call(() => { if (counterEl) counterEl.textContent = '02' }, null, 1.2)
 
-      // 2. Opposites Split — Desktop: pinned scrub; Mobile: scroll-triggered reveal
+      // 2. Opposites Split — Desktop: pinned scrub
       const splitRows = document.querySelectorAll('.vs-row')
-      const xDist = mobile ? 60 : 180
+      const xDist = 180
 
       splitRows.forEach((row) => {
         const leftEl = row.querySelector('.l')
@@ -403,66 +573,31 @@ function AboutPage() {
         }
       })
 
-      if (!mobile) {
-        const splitTl = gsap.timeline({
-          scrollTrigger: {
-            trigger: '#split-pin',
-            start: 'top top',
-            end: '+=140%',
-            pin: true,
-            scrub: 1,
-          }
-        })
+      const splitTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: '#split-pin',
+          start: 'top top',
+          end: '+=140%',
+          pin: true,
+          scrub: 1,
+        }
+      })
 
-        splitRows.forEach((row, idx) => {
-          const leftEl = row.querySelector('.l')
-          const rightEl = row.querySelector('.r')
-          const crossEl = row.querySelector('.x')
-          const timeOffset = idx * 0.45
+      splitRows.forEach((row, idx) => {
+        const leftEl = row.querySelector('.l')
+        const rightEl = row.querySelector('.r')
+        const crossEl = row.querySelector('.x')
+        const timeOffset = idx * 0.45
 
-          if (leftEl && rightEl && crossEl) {
-            splitTl
-              .to(leftEl, { x: 0, opacity: 1, duration: 1, ease: 'power2.out' }, timeOffset)
-              .to(rightEl, { x: 0, opacity: 1, duration: 1, ease: 'power2.out' }, timeOffset)
-              .to(crossEl, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.5)' }, timeOffset + 0.3)
-          }
-        })
-      } else {
-        // Mobile: individual scroll-triggered reveals per row
-        splitRows.forEach((row) => {
-          const leftEl = row.querySelector('.l')
-          const rightEl = row.querySelector('.r')
-          const crossEl = row.querySelector('.x')
+        if (leftEl && rightEl && crossEl) {
+          splitTl
+            .to(leftEl, { x: 0, opacity: 1, duration: 1, ease: 'power2.out' }, timeOffset)
+            .to(rightEl, { x: 0, opacity: 1, duration: 1, ease: 'power2.out' }, timeOffset)
+            .to(crossEl, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.5)' }, timeOffset + 0.3)
+        }
+      })
 
-          if (leftEl && rightEl && crossEl) {
-            gsap.to([leftEl, rightEl], {
-              x: 0,
-              opacity: 1,
-              duration: 0.7,
-              ease: 'power2.out',
-              scrollTrigger: {
-                trigger: row,
-                start: 'top 88%',
-                toggleActions: 'play none none reverse',
-              }
-            })
-            gsap.to(crossEl, {
-              scale: 1,
-              opacity: 1,
-              duration: 0.5,
-              delay: 0.15,
-              ease: 'back.out(1.5)',
-              scrollTrigger: {
-                trigger: row,
-                start: 'top 88%',
-                toggleActions: 'play none none reverse',
-              }
-            })
-          }
-        })
-      }
-
-      // 2.5. HUMAN × AI — works on both, but no pin on mobile
+      // 2.5. HUMAN × AI — Pinned on Desktop
       const mergeH = document.getElementById('mergeH')
       if (mergeH) {
         const humanEl = mergeH.querySelector('.human-text')
@@ -516,12 +651,17 @@ function AboutPage() {
           gsap.set(crossEl, { scale: 0, opacity: 0, rotate: -180 })
           gsap.set(smallEl, { opacity: 0, y: 15 })
 
-          const mergeConfig = mobile
-            ? { trigger: '#merge', start: 'top 80%', toggleActions: 'play none none reverse' }
-            : { trigger: '#merge', start: 'top top', end: '+=75%', pin: true, scrub: 1,
-                onEnter: () => startDecode(), onLeaveBack: () => { hasDecoded = false } }
-
-          const mergeTl = gsap.timeline({ scrollTrigger: { ...mergeConfig, onEnter: () => startDecode() } })
+          const mergeTl = gsap.timeline({
+            scrollTrigger: {
+              trigger: '#merge',
+              start: 'top top',
+              end: '+=75%',
+              pin: true,
+              scrub: 1,
+              onEnter: () => startDecode(),
+              onLeaveBack: () => { hasDecoded = false }
+            }
+          })
 
           mergeTl
             .to(humanEl, { filter: 'blur(0px)', letterSpacing: '0em', opacity: 1, scale: 1, duration: 1.2, ease: 'power3.out' }, 0)
@@ -531,7 +671,7 @@ function AboutPage() {
         }
       }
 
-      // 3. Taste section — Desktop: pinned scrub; Mobile: simple reveal
+      // 3. Taste section — Desktop: pinned scrub
       const noiseWords = document.querySelectorAll('.noise-word')
       const tasteFlash = document.getElementById('taste-flash')
       const tasteStatement = document.querySelector('#taste-core .statement')
@@ -544,82 +684,35 @@ function AboutPage() {
       gsap.set(tasteStatement, { opacity: 1 })
       gsap.set(noiseWords, { opacity: 0, scale: 0.7, filter: 'blur(0px)' })
 
-      if (!mobile) {
-        const tasteTl = gsap.timeline({
-          scrollTrigger: {
-            trigger: '#taste-pin',
-            start: 'top top',
-            end: '+=140%',
-            pin: true,
-            scrub: 1,
-          }
-        })
+      const tasteTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: '#taste-pin',
+          start: 'top top',
+          end: '+=140%',
+          pin: true,
+          scrub: 1,
+        }
+      })
 
-        noiseWords.forEach((word, idx) => {
-          const xOffset = (idx % 2 === 0 ? 40 : -40)
-          const yOffset = (idx % 3 === 0 ? -50 : 50)
-
-          tasteTl
-            .to(word, { x: xOffset * 0.5, y: yOffset * 0.5, opacity: 0.7, scale: 1.3, duration: 0.6, ease: 'power1.out' }, 0)
-            .to(word, { x: xOffset, y: yOffset, opacity: 0, scale: 2.4, filter: 'blur(12px)', duration: 0.7, ease: 'power1.in' }, 0.6)
-        })
+      noiseWords.forEach((word, idx) => {
+        const xOffset = (idx % 2 === 0 ? 40 : -40)
+        const yOffset = (idx % 3 === 0 ? -50 : 50)
 
         tasteTl
-          .to(tasteFlash, { opacity: 1, duration: 0.6, ease: 'power2.in' }, 1.2)
-          .set(tasteStatement, { opacity: 0 }, 1.8)
-          .set(noiseWords, { opacity: 0 }, 1.8)
-          .set(tasteWord, { opacity: 1 }, 1.8)
-          .set(tasteAfter, { opacity: 1 }, 1.8)
-          .to(tasteFlash, { opacity: 0, duration: 0.6, ease: 'power2.out' }, 1.8)
-          .to(tasteWord, { scale: 1.05, duration: 1.5, ease: 'power1.out' }, 1.8)
-      } else {
-        // Mobile: show noise words briefly then reveal taste word
-        gsap.to(noiseWords, {
-          opacity: 0.55,
-          scale: 1,
-          duration: 0.6,
-          stagger: 0.08,
-          ease: 'power1.out',
-          scrollTrigger: {
-            trigger: '#taste-pin',
-            start: 'top 80%',
-            toggleActions: 'play none none reverse',
-          }
-        })
-        gsap.to(tasteWord, {
-          opacity: 1,
-          scale: 1,
-          duration: 0.8,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: '#taste-pin',
-            start: 'top 60%',
-            toggleActions: 'play none none reverse',
-          }
-        })
-        gsap.to(tasteAfter, {
-          opacity: 1,
-          duration: 0.6,
-          delay: 0.2,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: '#taste-pin',
-            start: 'top 60%',
-            toggleActions: 'play none none reverse',
-          }
-        })
-        gsap.to(tasteStatement, {
-          opacity: 0,
-          duration: 0.4,
-          scrollTrigger: {
-            trigger: '#taste-pin',
-            start: 'top 60%',
-            toggleActions: 'play none none reverse',
-          }
-        })
-      }
+          .to(word, { x: xOffset * 0.5, y: yOffset * 0.5, opacity: 0.7, scale: 1.3, duration: 0.6, ease: 'power1.out' }, 0)
+          .to(word, { x: xOffset, y: yOffset, opacity: 0, scale: 2.4, filter: 'blur(12px)', duration: 0.7, ease: 'power1.in' }, 0.6)
+      })
 
-      // 4. Creed animations — Desktop: pinned scrub; Mobile: scroll-triggered reveal
+      tasteTl
+        .to(tasteFlash, { opacity: 1, duration: 0.6, ease: 'power2.in' }, 1.2)
+        .set(tasteStatement, { opacity: 0 }, 1.8)
+        .set(noiseWords, { opacity: 0 }, 1.8)
+        .set(tasteWord, { opacity: 1 }, 1.8)
+        .set(tasteAfter, { opacity: 1 }, 1.8)
+        .to(tasteFlash, { opacity: 0, duration: 0.6, ease: 'power2.out' }, 1.8)
+        .to(tasteWord, { scale: 1.05, duration: 1.5, ease: 'power1.out' }, 1.8)
+
+      // 4. Creed animations — Desktop: pinned scrub
       const creeds = document.querySelectorAll('.creed')
       creeds.forEach((creed) => {
         const chars = creed.querySelectorAll('.fx-target .char')
@@ -629,54 +722,255 @@ function AboutPage() {
         gsap.set(chars, { opacity: 0, y: 60 })
         if (label) gsap.set(label, { opacity: 0, y: 15 })
 
-        if (!mobile) {
-          const tl = gsap.timeline({
-            scrollTrigger: {
-              trigger: creed,
-              start: 'top top',
-              end: '+=100%',
-              pin: true,
-              scrub: 1,
-            }
-          })
-
-          if (label) {
-            tl.to(label, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0)
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: creed,
+            start: 'top top',
+            end: '+=100%',
+            pin: true,
+            scrub: 1,
           }
+        })
 
-          tl.to(chars, {
+        if (label) {
+          tl.to(label, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0)
+        }
+
+        tl.to(chars, {
+          opacity: 1,
+          y: 0,
+          stagger: 0.02,
+          duration: 1.2,
+          ease: 'power2.out'
+        }, 0.1)
+      })
+    });
+
+    // 2. Mobile Animations (max-width: 768px)
+    mm.add("(max-width: 768px)", () => {
+      const cities = document.querySelectorAll('.city')
+
+      // Mobile: simple reveal animation for each city card
+      cities.forEach((city) => {
+        gsap.from(city, {
+          opacity: 0,
+          y: 40,
+          duration: 0.8,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: city,
+            start: 'top 85%',
+            toggleActions: 'play none none reverse',
+          }
+        })
+      })
+
+      // 2. Opposites Split — Mobile: scroll-triggered reveal
+      const splitRows = document.querySelectorAll('.vs-row')
+      const xDist = 60
+
+      splitRows.forEach((row) => {
+        const leftEl = row.querySelector('.l')
+        const rightEl = row.querySelector('.r')
+        const crossEl = row.querySelector('.x')
+        if (leftEl && rightEl && crossEl) {
+          gsap.set(leftEl, { x: -xDist, opacity: 0 })
+          gsap.set(rightEl, { x: xDist, opacity: 0 })
+          gsap.set(crossEl, { scale: 0, opacity: 0 })
+        }
+      })
+
+      splitRows.forEach((row) => {
+        const leftEl = row.querySelector('.l')
+        const rightEl = row.querySelector('.r')
+        const crossEl = row.querySelector('.x')
+
+        if (leftEl && rightEl && crossEl) {
+          gsap.to([leftEl, rightEl], {
+            x: 0,
             opacity: 1,
-            y: 0,
-            stagger: 0.02,
-            duration: 1.2,
-            ease: 'power2.out'
-          }, 0.1)
-        } else {
-          // Mobile: trigger animation when entering viewport
-          const tl = gsap.timeline({
+            duration: 0.7,
+            ease: 'power2.out',
             scrollTrigger: {
-              trigger: creed,
-              start: 'top 80%',
+              trigger: row,
+              start: 'top 88%',
               toggleActions: 'play none none reverse',
             }
           })
-
-          if (label) {
-            tl.to(label, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0)
-          }
-
-          tl.to(chars, {
+          gsap.to(crossEl, {
+            scale: 1,
             opacity: 1,
-            y: 0,
-            stagger: 0.015,
-            duration: 0.8,
-            ease: 'power2.out'
-          }, 0.1)
+            duration: 0.5,
+            delay: 0.15,
+            ease: 'back.out(1.5)',
+            scrollTrigger: {
+              trigger: row,
+              start: 'top 88%',
+              toggleActions: 'play none none reverse',
+            }
+          })
         }
       })
-    }, containerRef)
 
-    return () => ctx.revert()
+      // 2.5. HUMAN × AI — Mobile: scroll-triggered reveal (no pin)
+      const mergeH = document.getElementById('mergeH')
+      if (mergeH) {
+        const humanEl = mergeH.querySelector('.human-text')
+        const aiEl = mergeH.querySelector('.ai-text')
+        const crossEl = mergeH.querySelector('.x')
+        const smallEl = document.querySelector('#merge .small')
+
+        if (humanEl && aiEl) {
+          const originalHuman = "HUMAN DEV"
+          const originalAI = "AI WORKFLOWS"
+          const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%"
+          let hasDecoded = false
+
+          const startDecode = () => {
+            if (hasDecoded) return
+            hasDecoded = true
+            let iterHuman = 0
+            let iterAI = 0
+
+            const interval = setInterval(() => {
+              if (iterHuman < originalHuman.length) {
+                humanEl.textContent = originalHuman.split('').map((c, i) => {
+                  if (i < iterHuman) return c
+                  return chars[Math.floor(Math.random() * chars.length)]
+                }).join('')
+                iterHuman += 0.3
+              } else {
+                humanEl.textContent = originalHuman
+              }
+
+              if (iterAI < originalAI.length) {
+                aiEl.textContent = originalAI.split('').map((c, i) => {
+                  if (i < iterAI) return c
+                  return chars[Math.floor(Math.random() * chars.length)]
+                }).join('')
+                iterAI += 0.3
+              } else {
+                aiEl.textContent = originalAI
+              }
+
+              if (iterHuman >= originalHuman.length && iterAI >= originalAI.length) {
+                clearInterval(interval)
+                humanEl.textContent = originalHuman
+                aiEl.textContent = originalAI
+              }
+            }, 35)
+          }
+
+          gsap.set(humanEl, { filter: 'blur(15px)', letterSpacing: '0.25em', opacity: 0, scale: 0.9 })
+          gsap.set(aiEl, { filter: 'blur(15px)', letterSpacing: '0.25em', opacity: 0, scale: 0.9 })
+          gsap.set(crossEl, { scale: 0, opacity: 0, rotate: -180 })
+          gsap.set(smallEl, { opacity: 0, y: 15 })
+
+          const mergeTl = gsap.timeline({
+            scrollTrigger: {
+              trigger: '#merge',
+              start: 'top 80%',
+              toggleActions: 'play none none reverse',
+              onEnter: () => startDecode()
+            }
+          })
+
+          mergeTl
+            .to(humanEl, { filter: 'blur(0px)', letterSpacing: '0em', opacity: 1, scale: 1, duration: 1.2, ease: 'power3.out' }, 0)
+            .to(aiEl, { filter: 'blur(0px)', letterSpacing: '0em', opacity: 1, scale: 1, duration: 1.2, ease: 'power3.out' }, 0)
+            .to(crossEl, { scale: 1, opacity: 1, rotate: 0, duration: 0.9, ease: 'back.out(1.5)' }, 0.4)
+            .to(smallEl, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, 0.5)
+        }
+      }
+
+      // 3. Taste section — Mobile: simple reveal
+      const noiseWords = document.querySelectorAll('.noise-word')
+      const tasteStatement = document.querySelector('#taste-core .statement')
+      const tasteWord = document.getElementById('tasteWord')
+      const tasteAfter = document.querySelector('#taste-core .after')
+
+      gsap.set(tasteWord, { opacity: 0, scale: 0.85 })
+      gsap.set(tasteAfter, { opacity: 0 })
+      gsap.set(tasteStatement, { opacity: 1 })
+      gsap.set(noiseWords, { opacity: 0, scale: 0.7, filter: 'blur(0px)' })
+
+      gsap.to(noiseWords, {
+        opacity: 0.55,
+        scale: 1,
+        duration: 0.6,
+        stagger: 0.08,
+        ease: 'power1.out',
+        scrollTrigger: {
+          trigger: '#taste-pin',
+          start: 'top 80%',
+          toggleActions: 'play none none reverse',
+        }
+      })
+      gsap.to(tasteWord, {
+        opacity: 1,
+        scale: 1,
+        duration: 0.8,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: '#taste-pin',
+          start: 'top 60%',
+          toggleActions: 'play none none reverse',
+        }
+      })
+      gsap.to(tasteAfter, {
+        opacity: 1,
+        duration: 0.6,
+        delay: 0.2,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: '#taste-pin',
+          start: 'top 60%',
+          toggleActions: 'play none none reverse',
+        }
+      })
+      gsap.to(tasteStatement, {
+        opacity: 0,
+        duration: 0.4,
+        scrollTrigger: {
+          trigger: '#taste-pin',
+          start: 'top 60%',
+          toggleActions: 'play none none reverse',
+        }
+      })
+
+      // 4. Creed animations — Mobile: scroll-triggered reveal
+      const creeds = document.querySelectorAll('.creed')
+      creeds.forEach((creed) => {
+        const chars = creed.querySelectorAll('.fx-target .char')
+        const label = creed.querySelector('.n')
+        if (chars.length === 0) return
+
+        gsap.set(chars, { opacity: 0, y: 60 })
+        if (label) gsap.set(label, { opacity: 0, y: 15 })
+
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: creed,
+            start: 'top 80%',
+            toggleActions: 'play none none reverse',
+          }
+        })
+
+        if (label) {
+          tl.to(label, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0)
+        }
+
+        tl.to(chars, {
+          opacity: 1,
+          y: 0,
+          stagger: 0.015,
+          duration: 0.8,
+          ease: 'power2.out'
+        }, 0.1)
+      })
+    });
+
+    return () => mm.revert()
   }, [])
 
   // Metric numbers auto count-up trigger
